@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD2PDF - Markdown to PDF Converter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --success-color: #10b981;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-color: #60a5fa;
+            --accent-hover: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            outline: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-icon {
+            padding: 0.625rem;
+        }
+
+        /* Main Layout */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .toolbar {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-right: 1rem;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+            padding-right: 0;
+            margin-left: auto;
+        }
+
+        .toolbar-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        select, input[type="file"] {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, input[type="file"]:hover {
+            border-color: var(--accent-color);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Editor Layout */
+        .editor-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            height: calc(100vh - 220px);
+            min-height: 500px;
+        }
+
+        .panel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel-header {
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .panel-btn {
+            padding: 0.375rem 0.625rem;
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .panel-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Markdown Input */
+        #markdown-input {
+            width: 100%;
+            height: 100%;
+            padding: 1.25rem;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            tab-size: 2;
+        }
+
+        #markdown-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Preview */
+        #preview {
+            padding: 2rem;
+            height: 100%;
+            overflow: auto;
+            background: var(--bg-primary);
+        }
+
+        /* Drag Overlay */
+        .drag-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px dashed var(--accent-color);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 50;
+        }
+
+        .drag-overlay.active {
+            opacity: 1;
+        }
+
+        .drag-message {
+            background: var(--bg-primary);
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .drag-message i {
+            width: 48px;
+            height: 48px;
+            color: var(--accent-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .drag-message p {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* Template Styles */
+        /* Minimal Template */
+        .template-minimal {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .template-minimal h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e5e5;
+        }
+
+        .template-minimal h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .template-minimal h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-minimal p {
+            margin-bottom: 1rem;
+        }
+
+        .template-minimal code {
+            background: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.875em;
+        }
+
+        .template-minimal pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .template-minimal pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .template-minimal blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+
+        .template-minimal table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .template-minimal th,
+        .template-minimal td {
+            border: 1px solid #e5e5e5;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .template-minimal th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .template-minimal ul,
+        .template-minimal ol {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .template-minimal li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Academic Template */
+        .template-academic {
+            font-family: 'Merriweather', Georgia, serif;
+            line-height: 1.8;
+            color: #1a1a1a;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .template-academic h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #000;
+        }
+
+        .template-academic h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .template-academic h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .template-academic p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+        }
+
+        .template-academic code {
+            font-family: 'Source Code Pro', monospace;
+            background: #f5f5f5;
+            padding: 0.15rem 0.35rem;
+            font-size: 0.85em;
+        }
+
+        .template-academic pre {
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+
+        .template-academic pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .template-academic blockquote {
+            border-left: 3px solid #333;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #555;
+            font-style: italic;
+        }
+
+        .template-academic table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .template-academic th,
+        .template-academic td {
+            border: 1px solid #ccc;
+            padding: 0.625rem;
+        }
+
+        .template-academic th {
+            background: #f5f5f5;
+            font-weight: 700;
+        }
+
+        .template-academic ul,
+        .template-academic ol {
+            margin: 1.25rem 0;
+            padding-left: 2rem;
+        }
+
+        /* Modern Template */
+        .template-modern {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.7;
+            color: #1f2937;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .template-modern h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .template-modern h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+
+        .template-modern h3 {
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #374151;
+        }
+
+        .template-modern p {
+            margin-bottom: 1.25rem;
+            color: #4b5563;
+        }
+
+        .template-modern code {
+            background: #f3f4f6;
+            color: #db2777;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.875em;
+        }
+
+        .template-modern pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-modern pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .template-modern blockquote {
+            background: #f9fafb;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+            color: #4b5563;
+        }
+
+        .template-modern table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-modern th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #111827;
+            padding: 0.875rem 1rem;
+            text-align: left;
+        }
+
+        .template-modern td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .template-modern tr:last-child td {
+            border-bottom: none;
+        }
+
+        .template-modern tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .template-modern ul,
+        .template-modern ol {
+            margin: 1.25rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .template-modern li {
+            margin-bottom: 0.5rem;
+        }
+
+        .template-modern li::marker {
+            color: #3b82f6;
+        }
+
+        .template-modern a {
+            color: #3b82f6;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .template-modern a:hover {
+            border-bottom-color: #3b82f6;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.25rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            color: var(--success-color);
+        }
+
+        .toast-message {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .editor-wrapper {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .panel {
+                min-height: 400px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar-group {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding-right: 0;
+                padding-bottom: 0.75rem;
+            }
+
+            .toolbar-group:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            #preview {
+                padding: 1.25rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .header, .toolbar, .panel-header, .drag-overlay {
+                display: none !important;
+            }
+
+            .editor-wrapper {
+                display: block;
+                height: auto;
+            }
+
+            .panel:first-child {
+                display: none;
+            }
+
+            .panel {
+                border: none;
+                box-shadow: none;
+            }
+
+            #preview {
+                overflow: visible;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+            </div>
+            <span>MD2PDF</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary btn-icon" id="theme-toggle" title="Toggle theme">
+                <i data-lucide="moon" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button class="btn btn-primary" id="export-btn">
+                <i data-lucide="download" style="width: 18px; height: 18px;"></i>
+                Export PDF
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <span class="toolbar-label">Template</span>
+                <select id="template-select">
+                    <option value="minimal">Minimal</option>
+                    <option value="academic">Academic</option>
+                    <option value="modern" selected>Modern</option>
+                </select>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-label">Page Size</span>
+                <select id="page-size">
+                    <option value="a4" selected>A4</option>
+                    <option value="letter">Letter</option>
+                </select>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-label">Orientation</span>
+                <select id="orientation">
+                    <option value="portrait" selected>Portrait</option>
+                    <option value="landscape">Landscape</option>
+                </select>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-label">File</span>
+                <input type="file" id="file-input" accept=".md,.markdown,.txt">
+            </div>
+            <div class="toolbar-group">
+                <button class="btn btn-secondary" id="load-sample">
+                    <i data-lucide="book-open" style="width: 16px; height: 16px;"></i>
+                    Load Sample
+                </button>
+                <button class="btn btn-secondary" id="clear-btn">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-wrapper">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+                        Markdown Input
+                    </span>
+                    <div class="panel-actions">
+                        <button class="panel-btn" id="copy-md">Copy</button>
+                        <span class="panel-btn" id="char-count">0 chars</span>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="drag-overlay" id="drag-overlay">
+                        <div class="drag-message">
+                            <i data-lucide="upload-cloud" style="width: 48px; height: 48px;"></i>
+                            <p>Drop your Markdown file here</p>
+                        </div>
+                    </div>
+                    <textarea id="markdown-input" placeholder="# Start typing your Markdown here...
+
+## Features
+- **Live preview** as you type
+- **Drag & drop** files to load
+- **Multiple templates** for PDF export
+- **Dark mode** support
+
+## Try it out!
+Paste your Markdown or drag a .md file here."></textarea>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                        Preview
+                    </span>
+                    <div class="panel-actions">
+                        <button class="panel-btn" id="refresh-preview">Refresh</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="preview" class="template-modern"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <i data-lucide="check-circle" class="toast-icon" style="width: 20px; height: 20px;"></i>
+        <span class="toast-message" id="toast-message">Action completed</span>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const markdownInput = document.getElementById('markdown-input');
+        const preview = document.getElementById('preview');
+        const templateSelect = document.getElementById('template-select');
+        const pageSizeSelect = document.getElementById('page-size');
+        const orientationSelect = document.getElementById('orientation');
+        const fileInput = document.getElementById('file-input');
+        const dragOverlay = document.getElementById('drag-overlay');
+        const exportBtn = document.getElementById('export-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const loadSampleBtn = document.getElementById('load-sample');
+        const clearBtn = document.getElementById('clear-btn');
+        const copyMdBtn = document.getElementById('copy-md');
+        const charCount = document.getElementById('char-count');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        // Sample Markdown
+        const sampleMarkdown = `# Project Proposal: AI-Powered Analytics Platform
+
+## Executive Summary
+
+We propose developing an **AI-powered analytics platform** that leverages machine learning to provide actionable insights for businesses. This platform will revolutionize how companies understand their data.
+
+## Key Features
+
+### 1. Real-time Processing
+- Stream data from multiple sources
+- Process millions of events per second
+- Sub-second latency for critical metrics
+
+### 2. Advanced Visualization
+> "Data is the new oil, but insights are the refined fuel that drives decisions."
+
+Our platform includes:
+1. Interactive dashboards
+2. Custom report builder
+3. Automated alerting system
+
+## Technical Specifications
+
+| Component | Technology | Status |
+|-----------|------------|--------|
+| Frontend | React + TypeScript | ✅ Ready |
+| Backend | Node.js + GraphQL | 🚧 In Progress |
+| ML Pipeline | Python + TensorFlow | 📋 Planned |
+| Database | PostgreSQL + Redis | ✅ Ready |
+
+## Code Example
+
+\`\`\`javascript
+const analytics = new AnalyticsPlatform({
+  realTime: true,
+  mlEnabled: true,
+  autoScale: true
+});
+
+await analytics.initialize();
+const insights = await analytics.process(data);
+\`\`\`
+
+## Next Steps
+
+1. **Q1 2024**: Complete MVP development
+2. **Q2 2024**: Beta testing with select clients
+3. **Q3 2024**: Public launch
+
+---
+
+*For more information, contact our team at team@example.com*`;
+
+        // Update preview
+        function updatePreview() {
+            const markdown = markdownInput.value;
+            const html = marked.parse(markdown);
+            preview.innerHTML = html;
+            charCount.textContent = `${markdown.length} chars`;
+        }
+
+        // Change template
+        function changeTemplate() {
+            const template = templateSelect.value;
+            preview.className = `template-${template}`;
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Export to PDF
+        function exportPDF() {
+            const template = templateSelect.value;
+            const pageSize = pageSizeSelect.value;
+            const orientation = orientationSelect.value;
+
+            const element = preview.cloneNode(true);
+            element.style.padding = '40px';
+            element.style.background = '#ffffff';
+
+            const opt = {
+                margin: 0,
+                filename: `document-${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: pageSize, 
+                    orientation: orientation 
+                }
+            };
+
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = '<i data-lucide="loader-2" style="width: 18px; height: 18px;" class="animate-spin"></i> Generating...';
+            lucide.createIcons();
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = '<i data-lucide="download" style="width: 18px; height: 18px;"></i> Export PDF';
+                lucide.createIcons();
+                showToast('PDF exported successfully!');
+            }).catch(err => {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = '<i data-lucide="download" style="width: 18px; height: 18px;"></i> Export PDF';
+                lucide.createIcons();
+                showToast('Error exporting PDF');
+                console.error(err);
+            });
+        }
+
+        // Handle file drop
+        function handleFileDrop(e) {
+            e.preventDefault();
+            dragOverlay.classList.remove('active');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        markdownInput.value = event.target.result;
+                        updatePreview();
+                        showToast(`Loaded: ${file.name}`);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    showToast('Please drop a Markdown file (.md, .markdown, .txt)');
+                }
+            }
+        }
+
+        // Handle file input
+        function handleFileInput(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    markdownInput.value = event.target.result;
+                    updatePreview();
+                    showToast(`Loaded: ${file.name}`);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = themeToggle.querySelector('i');
+            icon.setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const icon = themeToggle.querySelector('i');
+            icon.setAttribute('data-lucide', savedTheme === 'dark' ? 'sun' : 'moon');
+        }
+
+        // Copy markdown
+        function copyMarkdown() {
+            markdownInput.select();
+            document.execCommand('copy');
+            showToast('Markdown copied to clipboard!');
+        }
+
+        // Event Listeners
+        markdownInput.addEventListener('input', updatePreview);
+        templateSelect.addEventListener('change', changeTemplate);
+        exportBtn.addEventListener('click', exportPDF);
+        themeToggle.addEventListener('click', toggleTheme);
+        fileInput.addEventListener('change', handleFileInput);
+        copyMdBtn.addEventListener('click', copyMarkdown);
+
+        loadSampleBtn.addEventListener('click', () => {
+            markdownInput.value = sampleMarkdown;
+            updatePreview();
+            showToast('Sample loaded!');
+        });
+
+        clearBtn.addEventListener('click', () => {
+            markdownInput.value = '';
+            updatePreview();
+            showToast('Editor cleared');
+        });
+
+        // Drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.body.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            markdownInput.addEventListener(eventName, () => {
+                dragOverlay.classList.add('active');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dragOverlay.addEventListener(eventName, () => {
+                dragOverlay.classList.remove('active');
+            });
+        });
+
+        markdownInput.addEventListener('drop', handleFileDrop);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                exportPDF();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                updatePreview();
+            }
+        });
+
+        // Initialize
+        loadTheme();
+        updatePreview();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
